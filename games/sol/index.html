@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#17211f"><meta name="description" content="驾驶喷气飞机穿越海岸山谷。体验惯性、升力与低空飞行，挑战连续穿环。"><title>掠境 | Jet Flight</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./style.css"></head>
+<body>
+<main id="app">
+ <canvas id="world" aria-label="三维喷气飞机飞行场景"></canvas>
+ <div class="scrim"></div>
+ <header class="topbar shell">
+  <a class="brand" href="./" aria-label="掠境首页"><svg viewBox="0 0 36 36" aria-hidden="true"><path d="m18 3 3.5 12L33 23v3l-12-4-1 8 4 3H12l4-3-1-8-12 4v-3l11.5-8Z" fill="currentColor"/></svg><span>掠境<span class="brand-en">Jet Flight</span></span></a>
+  <div class="location"><span class="location-line"></span>海岸山谷<span class="weather">晴朗 / 日间飞行</span></div>
+  <nav aria-label="飞行设置"><button id="sound" class="icon-button" aria-label="开启声音" title="声音"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 3c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/></svg><span>声音关</span></button><button id="settingsBtn" class="icon-button" aria-expanded="false" aria-controls="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg><span>设置</span></button><button id="pause" class="icon-button" hidden><span id="pauseLabel">暂停</span><kbd>Esc</kbd></button></nav>
+ </header>
+ <section id="menu" class="menu shell" aria-labelledby="title">
+  <div class="menu-copy"><div class="flight-number">海岸山谷 / 穿环挑战</div><h1 id="title">天地之间，<br>由你掌舵。</h1><p class="intro">驾驶喷气飞机掠过海岸与山脊，<br>在每一次转弯中，找到飞行的节奏。</p>
+  <div class="actions"><button id="start" class="primary" disabled>准备飞行中…<span aria-hidden="true">↗</span></button><button id="helpBtn" class="text-button" aria-expanded="false" aria-controls="help">操控指南 <span aria-hidden="true">＋</span></button></div>
+  <p class="menu-note">24 个导航环。一条山谷。你的飞行轨迹。</p></div>
+  <div class="aircraft-note"><span class="note-rule"></span><div>双发喷气式飞机<small>惯性飞行 / 稳定辅助</small></div></div>
+ </section>
+ <aside id="help" class="panel" hidden aria-labelledby="helpTitle"><button class="close" id="closeHelp" aria-label="关闭操控指南">×</button><h2 id="helpTitle">掌握你的飞机</h2><dl class="controls"><div><dt><kbd>W</kbd> / <kbd>S</kbd></dt><dd>抬头 / 低头</dd></div><div><dt><kbd>A</kbd> / <kbd>D</kbd></dt><dd>向左 / 向右滚转</dd></div><div><dt><kbd>Q</kbd> / <kbd>E</kbd></dt><dd>向左 / 向右偏航</dd></div><div><dt><kbd>Shift</kbd> / <kbd>Ctrl</kbd></dt><dd>增加 / 减少油门</dd></div><div><dt><kbd>C</kbd> / <kbd>M</kbd></dt><dd>切换视角 / 操控模式</dd></div><div><dt><kbd>Esc</kbd> / <kbd>R</kbd></dt><dd>暂停 / 重新开始</dd></div></dl><p>鼠标模式：向两侧移动进行滚转，向上移动抬头，滚轮调节油门。移回中心即可回稳。</p><p>穿环获得奖励，连续命中增加积分。山体与水面会结束飞行；失速时低头并增加油门。</p><button id="helpDone" class="secondary">准备好了</button></aside>
+ <aside id="settings" class="panel" hidden aria-labelledby="settingsTitle"><button id="closeSettings" class="close" aria-label="关闭设置">×</button><h2 id="settingsTitle">飞行设置</h2><label>操控方式<select id="controlMode"><option value="keyboard">键盘操控</option><option value="mouse">鼠标操控</option></select></label><label>画面质量<select id="quality"><option value="high">高画质</option><option value="balanced" selected>均衡</option><option value="low">流畅</option></select></label><label for="sensitivity">操控灵敏度 <output id="sensitivityValue">1.0</output><input id="sensitivity" type="range" min="0.5" max="1.7" step="0.1" value="1"></label><label class="check"><input type="checkbox" id="invert">反转俯仰操作</label><p>切换窗口会自动暂停。低空转弯时，请留出拉起空间。</p><button id="settingsDone" class="secondary">完成设置</button></aside>
+ <div id="flightHud" hidden>
+  <div class="mission"><span>航线进度</span><strong><b id="gates">00</b><small> / 24</small></strong><div id="routeDots" class="route-dots"></div><span id="nextGate">飞向第一个导航环</span></div>
+  <div class="scorebox"><span>飞行得分</span><strong id="score">000000</strong><small>最高 <b id="best">0</b></small></div>
+  <div id="reticle" class="reticle" aria-hidden="true"><i></i><span></span><i></i></div>
+  <div class="heading"><span id="headingTape">300　　330　　N　　030　　060</span><b id="heading">000°</b></div>
+  <div id="targetHint" class="target-hint" hidden>导航环方向 <span id="targetArrow">↗</span></div>
+  <div class="instruments"><div class="instrument"><span>空速 <small>km/h</small></span><strong id="speed">522</strong><div class="scale"></div></div><div class="attitude"><svg viewBox="0 0 120 70" aria-label="姿态仪"><g id="attitudeLines"><path d="M17 35h23m40 0h23M32 20h15m26 0h15M42 7h36M42 62h36M32 50h15m26 0h15"/></g><path class="fixed" d="M42 35h11l7 6 7-6h11M60 1v7"/></svg><span id="vertical">平稳飞行</span></div><div class="instrument"><span>海拔 <small>m</small></span><strong id="altitude">480</strong><div class="scale"></div></div><div class="throttle"><span>油门</span><div class="throttle-track"><i id="throttleBar"></i></div><b id="throttle">58%</b></div></div>
+  <div id="warning" class="warning" role="status" hidden></div><div id="toast" class="toast" role="status" hidden></div>
+ </div>
+ <footer class="bottombar shell"><div id="footerLeft"><span id="footerHint">飞行体验，始于一次起航。</span><span id="bestMenu"></span></div><div class="footer-controls"><span id="modeLabel">键盘操控</span><button id="cameraBtn" class="text-button">追尾视角 <kbd>C</kbd></button><button id="fullscreen" class="text-button" aria-label="切换全屏">全屏 <span aria-hidden="true">⛶</span></button></div></footer>
+ <section id="pausePanel" class="center-panel" hidden aria-labelledby="pauseTitle"><span class="panel-rule"></span><h2 id="pauseTitle">稍作停留</h2><p>天空会等你，准备好再继续。</p><button id="resume" class="primary">继续飞行 <span aria-hidden="true">↗</span></button><button id="restartPaused" class="text-button">重新起航 <kbd>R</kbd></button><button id="returnMenu" class="text-button">返回主界面</button></section>
+ <section id="endPanel" class="center-panel" hidden aria-labelledby="endTitle"><span class="panel-rule"></span><h2 id="endTitle">本次飞行结束</h2><p id="endReason"></p><div class="result-score"><span>本次得分</span><strong id="endScore">0</strong></div><dl class="results"><div><dt>飞行距离</dt><dd id="endDistance"></dd></div><div><dt>飞行时间</dt><dd id="endTime"></dd></div><div><dt>成功穿环</dt><dd id="endGates"></dd></div></dl><button id="restart" class="primary">再次起航 <span aria-hidden="true">↗</span></button><button id="endMenu" class="text-button">返回主界面</button></section>
+ <div id="loadStatus" class="load-status" role="status">正在准备海岸空域…</div><div id="fatal" class="center-panel" hidden><h2>飞行场景未能启动</h2><p id="fatalMessage">请使用开启硬件加速的桌面浏览器。</p><button class="primary" onclick="location.reload()">重新加载</button></div>
+ <noscript><div class="noscript">此飞行游戏需要 JavaScript。请在浏览器中启用 JavaScript 后重新加载。</div></noscript>
+</main><script type="module" src="./game.js"></script></body></html>
+
+

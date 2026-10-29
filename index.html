@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>苍穹飞行 · 三模型同题对决</title>
+<meta name="description" content="同一个提示词，三个大模型各写一款 Three.js 喷气机飞行游戏。挑一款，直接起飞。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
+<style>
+  :root{
+    --bg:#05070d;
+    --panel:rgba(255,255,255,.035);
+    --line:rgba(255,255,255,.09);
+    --txt:#e9eef6;
+    --dim:#8c98ab;
+    --kimi:#37e3ff;
+    --ds:#ffb648;
+    --sol:#41e6a4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    min-height:100vh;
+    display:flex;flex-direction:column;
+  }
+  /* 背景光效 */
+  .aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+  .aurora i{position:absolute;display:block;border-radius:50%;filter:blur(90px);opacity:.42}
+  .aurora i:nth-child(1){width:52vw;height:52vw;left:-12vw;top:-18vw;background:radial-gradient(circle,rgba(55,227,255,.5),transparent 68%)}
+  .aurora i:nth-child(2){width:46vw;height:46vw;right:-10vw;top:2vw;background:radial-gradient(circle,rgba(255,182,72,.38),transparent 68%)}
+  .aurora i:nth-child(3){width:60vw;height:60vw;left:22vw;bottom:-34vw;background:radial-gradient(circle,rgba(65,230,164,.3),transparent 70%)}
+  .grid{
+    position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+    background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(ellipse 90% 70% at 50% 30%,#000 30%,transparent 78%);
+    -webkit-mask-image:radial-gradient(ellipse 90% 70% at 50% 30%,#000 30%,transparent 78%);
+  }
+  .wrap{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;
+    width:100%;max-width:1220px;margin:0 auto;padding:clamp(28px,5vw,64px) clamp(18px,4vw,40px) 40px}
+
+  /* 头部 */
+  header{text-align:center;margin-bottom:clamp(28px,4vw,52px)}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--dim);border:1px solid var(--line);border-radius:999px;
+    padding:7px 15px;background:rgba(255,255,255,.03);backdrop-filter:blur(8px);
+  }
+  .eyebrow b{width:6px;height:6px;border-radius:50%;background:var(--sol);box-shadow:0 0 10px var(--sol)}
+  h1{
+    font-size:clamp(34px,6.4vw,68px);line-height:1.04;letter-spacing:-.02em;
+    margin:20px 0 16px;font-weight:800;
+    background:linear-gradient(180deg,#ffffff 8%,#b9c6d8 62%,#7d8ea6 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  h1 span{display:block;font-size:.34em;letter-spacing:.34em;font-weight:600;
+    background:linear-gradient(90deg,var(--kimi),var(--ds),var(--sol));
+    -webkit-background-clip:text;background-clip:text;color:transparent;margin-top:14px}
+  .lede{color:var(--dim);font-size:clamp(14px,1.6vw,16.5px);line-height:1.75;max-width:660px;margin:0 auto}
+  .lede em{color:#cfd9e8;font-style:normal}
+
+  /* 卡片 */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,2vw,20px);flex:1}
+  .card{
+    position:relative;display:flex;flex-direction:column;
+    padding:clamp(20px,2.4vw,28px);border-radius:20px;
+    border:1px solid var(--line);
+    background:linear-gradient(168deg,rgba(255,255,255,.062),rgba(255,255,255,.018) 55%,rgba(255,255,255,.008));
+    backdrop-filter:blur(14px);
+    cursor:pointer;overflow:hidden;
+    transition:transform .38s cubic-bezier(.2,.8,.2,1),border-color .38s,box-shadow .38s;
+    text-align:left;color:inherit;font:inherit;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .card::before{
+    content:"";position:absolute;inset:0;border-radius:inherit;opacity:0;transition:opacity .38s;
+    background:radial-gradient(420px 200px at 50% -10%,var(--ac),transparent 72%);
+  }
+  .card::after{
+    content:"";position:absolute;left:0;right:0;top:0;height:2px;transform:scaleX(0);transform-origin:left;
+    background:linear-gradient(90deg,var(--ac),transparent);transition:transform .45s;
+  }
+  .card:hover,.card:focus-visible{transform:translateY(-6px);border-color:color-mix(in srgb,var(--ac) 46%,transparent);
+    box-shadow:0 26px 60px -22px color-mix(in srgb,var(--ac) 42%,transparent);outline:none}
+  .card:hover::before,.card:focus-visible::before{opacity:.16}
+  .card:hover::after,.card:focus-visible::after{transform:scaleX(1)}
+  .card[data-m="kimi"]{--ac:var(--kimi)}
+  .card[data-m="ds"]{--ac:var(--ds)}
+  .card[data-m="sol"]{--ac:var(--sol)}
+
+  .row1{display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:1}
+  .tag{
+    font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ac);border:1px solid color-mix(in srgb,var(--ac) 38%,transparent);
+    background:color-mix(in srgb,var(--ac) 12%,transparent);
+    padding:5px 10px;border-radius:7px;white-space:nowrap;
+  }
+  .num{font-size:12px;color:#5d6a7d;font-variant-numeric:tabular-nums;letter-spacing:.1em}
+  .gname{
+    position:relative;z-index:1;margin:22px 0 4px;
+    font-size:clamp(19px,2.1vw,23px);font-weight:750;letter-spacing:-.01em;line-height:1.3;
+  }
+  .gsub{position:relative;z-index:1;font-size:12.5px;color:var(--ac);opacity:.9;letter-spacing:.04em}
+  .gdesc{position:relative;z-index:1;color:var(--dim);font-size:13.5px;line-height:1.7;margin:14px 0 0;flex:1}
+  .chips{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:6px;margin:18px 0 20px}
+  .chips span{
+    font-size:11px;color:#95a3b7;border:1px solid var(--line);border-radius:6px;
+    padding:4px 8px;background:rgba(255,255,255,.028);white-space:nowrap;
+  }
+  .play{
+    position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;
+    gap:10px;padding-top:16px;border-top:1px solid var(--line);
+    font-size:13.5px;font-weight:650;color:var(--txt);
+  }
+  .play svg{transition:transform .38s}
+  .card:hover .play svg{transform:translateX(5px)}
+  .play .kick{font-size:11px;color:#5d6a7d;font-weight:500;letter-spacing:.06em}
+
+  footer{
+    position:relative;z-index:1;margin-top:clamp(26px,4vw,42px);padding-top:20px;
+    border-top:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:10px 22px;justify-content:space-between;
+    font-size:12px;color:#66738a;line-height:1.7;
+  }
+  footer kbd{
+    font:inherit;font-size:11px;border:1px solid var(--line);border-bottom-width:2px;
+    border-radius:5px;padding:1px 6px;color:#93a1b6;background:rgba(255,255,255,.04)
+  }
+
+  /* 游戏全屏层 */
+  #stage{position:fixed;inset:0;z-index:50;background:#05070d;display:none}
+  #stage.on{display:block;animation:fade .28s ease both}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  #stage iframe{width:100%;height:100%;border:0;display:block;background:#05070d}
+  /* 左边缘常驻竖标签：不占任何 HUD 角落 */
+  #back{
+    position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+    width:25px;height:76px;padding:0;
+    border:1px solid rgba(255,255,255,.13);border-left:0;
+    border-radius:0 11px 11px 0;
+    background:rgba(7,11,18,.66);backdrop-filter:blur(14px);
+    color:#cfdaea;cursor:pointer;font-family:inherit;
+    opacity:.78;transition:width .22s ease,opacity .22s ease,background .22s ease;
+  }
+  #back:hover,#back:focus-visible{width:31px;opacity:1;background:rgba(7,11,18,.95);outline:none;color:#fff}
+  #back svg{width:12px;height:12px;flex:0 0 auto;opacity:.9}
+  #back em{
+    font-style:normal;writing-mode:vertical-rl;text-orientation:upright;
+    font-size:10.5px;letter-spacing:3px;line-height:1;font-weight:600;
+  }
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+  @media (max-width:900px){
+    .cards{grid-template-columns:1fr}
+    .gname{margin-top:16px}
+    .gdesc{flex:none}
+    .card{padding:20px}
+    .aurora i{filter:blur(70px);opacity:.34}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="aurora"><i></i><i></i><i></i></div>
+<div class="grid"></div>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><b></b>Same Prompt · Three Builds</div>
+    <h1>苍穹飞行<span>JET FLIGHT SHOWDOWN</span></h1>
+    <p class="lede">同一句需求，三个模型各写了一款 <em>Three.js</em> 喷气机飞行游戏。<br>三种审美、三套物理、三种工程习惯 —— 挑一款，直接起飞。</p>
+  </header>
+
+  <main class="cards">
+    <button class="card" data-m="kimi" data-src="games/kimi/index.html" aria-label="进入 AERION 苍穹飞行">
+      <div class="row1"><span class="tag">KIMI</span><span class="num">01</span></div>
+      <h2 class="gname">AERION · 苍穹飞行</h2>
+      <div class="gsub">单一 HTML 全内联</div>
+      <p class="gdesc">构建产物只有一页 HTML，Three.js 与样式全部内联进文件，拷走就能跑，部署零依赖。</p>
+      <div class="chips"><span>Vite 单文件构建</span><span>内联 Three.js</span><span>566 KB 单页</span></div>
+      <div class="play"><span>开始飞行</span><span class="kick">ENTER ↩</span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+      </div>
+    </button>
+
+    <button class="card" data-m="ds" data-src="games/ds/index.html" aria-label="进入 SKYBREAKER 喷气机飞行模拟">
+      <div class="row1"><span class="tag">DS 4.1 Flash</span><span class="num">02</span></div>
+      <h2 class="gname">SKYBREAKER</h2>
+      <div class="gsub">手写 UMD · 程序化世界</div>
+      <p class="gdesc">一个 game.js 从噪声地形写到气动模型，本地 Three.js r128 优先加载，CDN 只做兜底。</p>
+      <div class="chips"><span>零构建</span><span>值噪声 fBm 地形</span><span>单文件 52 KB</span></div>
+      <div class="play"><span>开始飞行</span><span class="kick">ENTER ↩</span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+      </div>
+    </button>
+
+    <button class="card" data-m="sol" data-src="games/sol/index.html" aria-label="进入 掠境 Jet Flight">
+      <div class="row1"><span class="tag">6.1 Sol High</span><span class="num">03</span></div>
+      <h2 class="gname">掠境 · Jet Flight</h2>
+      <div class="gsub">分模块工程 · 120 Hz 定步长</div>
+      <p class="gdesc">物理、场景、玩法拆成独立 ES 模块，固定步长积分，随包附物理与浏览器验证报告。</p>
+      <div class="chips"><span>ES Modules</span><span>120 Hz 物理</span><span>含验证报告</span></div>
+      <div class="play"><span>开始飞行</span><span class="kick">ENTER ↩</span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+      </div>
+    </button>
+  </main>
+
+  <footer>
+    <span>操作差异较大，进入后请先看游戏内按键提示（多为 W/A/S/D + Shift 油门）。</span>
+    <span>点屏幕左边缘的「返回」竖标签即可退回 · 首页快捷键 <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> 直接进入</span>
+  </footer>
+</div>
+
+<div id="stage" role="dialog" aria-modal="true" aria-label="游戏运行区">
+  <button id="back" type="button" aria-label="返回游戏选择" title="返回游戏选择">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+    <em>返回</em>
+  </button>
+  <iframe id="frame" title="游戏画面" allow="fullscreen; autoplay; cross-origin-isolated" allowfullscreen></iframe>
+</div>
+
+<script>
+(function(){
+  const stage = document.getElementById('stage');
+  const frame = document.getElementById('frame');
+  const cards = [...document.querySelectorAll('.card')];
+  let current = -1;
+
+  function open(src, idx){
+    if (current === idx){ stage.classList.add('on'); return; }
+    current = idx;
+    frame.src = src;
+    stage.classList.add('on');
+    history.pushState({game: idx}, '', '#play-' + idx);
+    // 让 iframe 拿到键盘焦点
+    setTimeout(()=>{ try{ frame.focus(); }catch(e){} }, 120);
+  }
+  function close(pop){
+    stage.classList.remove('on');
+    frame.src = 'about:blank';
+    current = -1;
+    if (!pop && location.hash.startsWith('#play-')) history.back();
+  }
+
+  cards.forEach((c, i) => c.addEventListener('click', () => open(c.dataset.src, i)));
+  document.getElementById('back').addEventListener('click', () => close(false));
+
+  document.addEventListener('keydown', e => {
+    if (stage.classList.contains('on')) return;            // 游戏内接管键盘
+    if (e.key === '1' || e.key === '2' || e.key === '3'){
+      const i = Number(e.key) - 1;
+      if (cards[i]) { cards[i].focus(); open(cards[i].dataset.src, i); }
+    }
+    if (e.key === 'Enter' && document.activeElement?.classList.contains('card')){
+      document.activeElement.click();
+    }
+  });
+
+  // Esc 在页面层无法穿透 iframe，用 popstate 处理浏览器后退
+  window.addEventListener('popstate', () => {
+    if (location.hash.startsWith('#play-') === false && current !== -1){
+      stage.classList.remove('on');
+      frame.src = 'about:blank';
+      current = -1;
+    }
+  });
+})();
+</script>
+</body>
+</html>
